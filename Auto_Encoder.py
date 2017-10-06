@@ -1,4 +1,3 @@
-# WRITTEN BY MINT
 
 from mido import MidiFile
 import os
@@ -6,10 +5,12 @@ import csv
 
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
 # keras specific imports
-from keras.models import Sequential
-from keras.layers import Activation, Dense
+from keras.models import Sequential, Model
+from keras.layers import Activation, Dense, Input
+from keras import regularizers
 
 def midiToCSV(directoriesIn, directoryOut):
 
@@ -163,15 +164,17 @@ Set some parameters
 # min 1, max 128
 sample_rows = 128
 # min 1, max depends on chunk size when turn into a matrix
-sample_cols = 50
+sample_cols = 20
 
 num_training_samples = 10000
 num_validation_samples = 2000
 
-num_epochs = 5
+num_epochs = 50
 batch_size = 128
 
 time_per_chunk = 0.1
+
+encoding_dim = 64
 
 '''
 Preprocessing - getting a binary of note onsets
@@ -193,42 +196,93 @@ im.show()
 Create a training and validation dataset
 '''
 
-X_train = getSamplesFromSong(velocity_only_binary, num_training_samples, sample_rows, sample_cols)
+# NOTE IS USING THE VELOCITY NOT THE BINARY ONE RIGHT NOW
+X_train = getSamplesFromSong(velocity_only, num_training_samples, sample_rows, sample_cols)
 # note validation may contain some exact copies of training
-X_val = getSamplesFromSong(velocity_only_binary, num_validation_samples, sample_rows, sample_cols)
+X_val = getSamplesFromSong(velocity_only, num_validation_samples, sample_rows, sample_cols)
 
 '''
 Set up our keras model of an autoencoder
 '''
-# create the model
-model = Sequential()
-# add layers
-model.add(Dense(units=64, input_dim=sample_rows * sample_cols))
-model.add(Activation('relu'))
-model.add(Dense(units=sample_rows * sample_cols)) # output the same dim as the original input
-model.add(Activation('relu')) # not sure if should activate here
+
+input_img = Input(shape=(sample_rows * sample_cols,))
+
+# create the encoding and decoding layers
+encoded = Dense(units=encoding_dim,
+                 input_dim=sample_rows * sample_cols,
+                 activation='relu',
+                 activity_regularizer = regularizers.l1(10e-5))(input_img,)
+decoded = Dense(units=sample_rows * sample_cols, activation='relu')(encoded) # output the same dim as the original input
+
+# create your autoencoder model
+autoencoder = Model(inputs=input_img, outputs=decoded)
+
+# make a separate encoding and decoding layer
+encoder = Model(input_img, encoded)
+# placeholder for the encoded input
+encoded_input = Input(shape=(encoding_dim,))
+# retrieve the last layer of the autoencoder
+decoder_layer = autoencoder.layers[-1]
+decoder = Model(encoded_input, decoder_layer(encoded_input))
 
 # set the loss and optimizer
-model.compile(loss='mean_squared_error',
+autoencoder.compile(loss='mean_squared_error',
                 optimizer='sgd')
 
 
 '''
 Train our model
 '''
-model.fit(X_train, X_train, epochs=num_epochs, batch_size=batch_size)
 
+autoencoder.fit(X_train, X_train, epochs=num_epochs, batch_size=batch_size, validation_data=(X_val, X_val))
+
+# epochs_between_eval = 5
+# # loop so can print out stuff each epoch
+# epoch_nums = [0]
+# training_loss = [model.evaluate(X_train, X_train, batch_size=128)]
+# validation_loss = [model.evaluate(X_train, X_train, batch_size=128)]
+# for i in range(num_epochs / epochs_between_eval):
+#     model.fit(X_train, X_train, epochs=epochs_between_eval, batch_size=batch_size)
+#     # evaluate and print
+#     epoch_nums = epoch_nums + [epochs_between_eval * (i+1)]
+#     training_loss = training_loss + [model.evaluate(X_train, X_train, batch_size=128)]
+#     validation_loss = validation_loss + [model.evaluate(X_val, X_val, batch_size=128)]
+#     print("Training, Validation Loss: %g, %g"%(training_loss[-1], validation_loss[-1]))
+#     print("Completed %d Epochs"%(epochs_between_eval * (i+1)))
+
+
+'''
+Plot Training Process
+'''
+
+# grab out data from the history stored in the autoencoder
+training_loss = autoencoder.history.history['loss']
+validation_loss = autoencoder.history.history['val_loss']
+epoch_nums = range(length(validation_loss))
+
+print a graph of validation and training loss vs. epoch
+fig = plt.figure(figsize=(7, 4))
+myPlot = fig.add_subplot(111)
+myPlot.plot(epoch_nums, training_loss, '-', label="Training")
+myPlot.plot(epoch_nums, validation_loss, '-', label="Validation")
+myPlot.set_xlabel("Epoch Number")
+myPlot.set_ylabel("Loss")
+
+myPlot.set_title("Training and Validation Loss vs. Epoch Number")
+myPlot.legend(loc="best", frameon=False)
+# Write the figure
+fig.savefig('TrainingPlot_AutoEncoder')
 
 
 '''
 Analyze the weights of our model
 '''
 
-weights = model.get_weights()
+weights = autoencoder.get_weights()
 layer_one_weights = weights[0]
 layer_two_weights = weights[1]
 
-num_to_display = 3
+num_to_display = 1
 for i in range(num_to_display):
     # get a single filter
     curFilter = np.reshape(layer_one_weights[:, i], (sample_rows, sample_cols))
