@@ -141,7 +141,10 @@ def similarity(mat):
 
 			sameOn = np.sum(np.logical_and(A,B))
 
-			similarity = (2 * sameOn) / (aOn + bOn)
+			if (aOn == 0 and bOn == 0)
+				similarity = 1
+			else
+				similarity = (2 * sameOn) / (aOn + bOn)
 
 			similarityMat[i][j] = similarity
 
