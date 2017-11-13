@@ -148,20 +148,33 @@ def similarity(mat):
 	# vertically flip because similarity matrices are defined stupidly
 	similarityMat = np.flipud(similarityMat)
 
-	im = Image.fromarray(similarityMat * 256)
-	im.show()
+	#im = Image.fromarray(similarityMat * 256)
+	#im.show()
 
 	return similarityMat
 
+def csvToSelfSimilarity(filename, onsetOnly):
+	'''
+	Take in the path to a CSV file that contains the MIDI data
+	Output a self-similarity matrix from that MIDI file
 
-#midiToCSV(['Midi/'], 'CSV_From_Midi/')
-origMatrix = createMatrixFromCSV('CSV_From_Midi/godowsky_chopin_etude_10_02_v2_(c)yogore.csv', True)
+	filename:
+	'''
+	# ahhhh think about time per chunk at some point
+	origMatrix = createMatrixFromCSV(filename, onsetOnly)
+	origVelocityOnly = origMatrix[:, :, 1]
+	origLogicalMat = origVelocityOnly.astype(bool)
+	origSim = similarity(origLogicalMat)
+	return origSim
 
-origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
+# midiToCSV(['Midi/'], 'CSV_From_Midi/')
+# origMatrix = createMatrixFromCSV('godowsky_chopin_etude_10_01_v1_(c)yogore.csv', True)
 
-im = Image.fromarray(origVelocityOnly * 2)
-im.show()
+# origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
 
-origLogicalMat = origVelocityOnly.astype(bool)
+# im = Image.fromarray(origVelocityOnly * 2)
+# im.show()
 
-origSim = similarity(origLogicalMat)
+# origLogicalMat = origVelocityOnly.astype(bool)
+
+# origSim = similarity(origLogicalMat)
