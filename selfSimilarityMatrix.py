@@ -141,9 +141,9 @@ def similarity(mat):
 
 			sameOn = np.sum(np.logical_and(A,B))
 
-			if (aOn == 0 and bOn == 0)
+			if (aOn == 0 and bOn == 0):
 				similarity = 1
-			else
+			else:
 				similarity = (2 * sameOn) / (aOn + bOn)
 
 			similarityMat[i][j] = similarity
@@ -151,8 +151,8 @@ def similarity(mat):
 	# vertically flip because similarity matrices are defined stupidly
 	similarityMat = np.flipud(similarityMat)
 
-	#im = Image.fromarray(similarityMat * 256)
-	#im.show()
+	im = Image.fromarray(similarityMat * 256)
+	im.show()
 
 	return similarityMat
 
@@ -170,14 +170,14 @@ def csvToSelfSimilarity(filename, onsetOnly):
 	origSim = similarity(origLogicalMat)
 	return origSim
 
-# midiToCSV(['Midi/'], 'CSV_From_Midi/')
-# origMatrix = createMatrixFromCSV('godowsky_chopin_etude_10_01_v1_(c)yogore.csv', True)
+#midiToCSV(['Midi/'], 'CSV_From_Midi/')
+origMatrix = createMatrixFromCSV('godowsky_chopin_etude_10_01_v1_(c)yogore.csv', True)
 
-# origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
+origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
 
-# im = Image.fromarray(origVelocityOnly * 2)
-# im.show()
+im = Image.fromarray(origVelocityOnly * 2)
+im.show()
 
-# origLogicalMat = origVelocityOnly.astype(bool)
+origLogicalMat = origVelocityOnly.astype(bool)
 
-# origSim = similarity(origLogicalMat)
+origSim = similarity(origLogicalMat)
