@@ -1,53 +1,15 @@
-import mido
-import random
-from mido import Message, MidiFile, MidiTrack
-
+# import mido
+# import random
 import pretty_midi
 
+# from mido import Message, MidiFile, MidiTrack
+from midi2audio import FluidSynth
 
 def printMidi(fileName):
 	midiToPlay = MidiFile(fileName)
 	for track in midiToPlay.tracks:
 	    for msg in track:
 	        print(msg)
-
-def onlyNote(inputFileName, outputFileName, shiftFront):
-	orig = MidiFile(inputFileName)
-	mid = MidiFile()
-
-	for tr in orig.tracks:
-		track = MidiTrack()
-		mid.tracks.append(track)
-		#<meta message track_name name='Grand Piano' time=0>
-
-		# msg = Message('note_on', note=0, velocity=0, time=timeShift)
-		# track.append(msg)
-
-		for msg in tr:
-			if msg.type == 'note_on' or msg.type == 'note_off':
-				if msg.time != shiftFront:
-					track.append(msg)
-	mid.save(outputFileName)
-
-def shiftAndScale(inputFileName, outputFileName, pitchShift, timeScale):
-	orig = MidiFile(inputFileName)
-	mid = MidiFile()
-
-	for tr in orig.tracks:
-		track = MidiTrack()
-		mid.tracks.append(track)
-#<meta message track_name name='Grand Piano' time=0>
-		
-		# time=0 could be replaced be time=timeShift if necessary
-		msg = Message('note_on', note=0, velocity=0, time=0)
-		track.append(msg)
-
-		for msg in tr:
-			if msg.type == 'note_on':
-				msg.time = round(msg.time * timeScale)
-				msg.note = msg.note + pitchShift
-				track.append(msg)
-	mid.save(outputFileName)
 
 '''
 Collapses different MIDI tracks (or "Instruments" by PrettyMIDI language) into a single track,
@@ -72,13 +34,16 @@ def preprocessFile(inputFileName, outputFileName):
 			note.start = note.start - onsets[0]
 			note.end = note.end - onsets[0]
 
-	print(modified_data.get_end_time())
+	modified_data.fluidsynth
 	modified_data.write(outputFileName)
 
 '''
-Take in processed file (one track, no initial silence)
-
-TODO: pitch shift
+Take in processed file (one track, no initial silence), and
+scale by the time provided (timeScale > 1 will stretch the piece,
+timeScale < 1 will compress the piece) and will shift the piece
+by specified pitchShift (positive pitchShift shifts piece up,
+negative pitchShift shifts the piece down by specified number of
+notes)
 '''
 def scalePiece(inputFileName, outputFileName, timeScale, pitchShift):
 	# Load MIDI file into PrettyMIDI object
@@ -93,108 +58,172 @@ def scalePiece(inputFileName, outputFileName, timeScale, pitchShift):
 	midi_data.write(outputFileName)
 
 PATH_TO_DATASET = 'Godowtsai Dataset/'
-PATH_TO_PROCESSED_FILES = 'Output Midi/Processed/'
-LIST_TO_PROCESS = [
-	'Chopin/chopin_op10_e01.mid',
-	'Chopin/chopin_op10_e02.mid', 
-	'Chopin/chopin_op10_e03.mid',
-	'Chopin/chopin_op10_e04.mid', 
-	'Chopin/chopin_op10_e05.mid', 
-	'Chopin/chopin_op10_e06.mid', 
-	'Chopin/chopin_op10_e07.mid', 
-	'Chopin/chopin_op10_e08.mid', 
-	'Chopin/chopin_op10_e09.mid', 
-	'Chopin/chopin_op10_e10.mid', 
-	'Chopin/chopin_op10_e11.mid', 
-	'Chopin/chopin_op10_e12.mid', 
-	'Chopin/chopin_op25_e01.mid', 
-	'Chopin/chopin_op25_e02.mid', 
-	'Chopin/chopin_op25_e03.mid', 
-	'Chopin/chopin_op25_e04.mid', 
-	'Chopin/chopin_op25_e05.mid', 
-	'Chopin/chopin_op25_e06.mid', 
-	'Chopin/chopin_op25_e07.mid', 
-	'Chopin/chopin_op25_e08.mid', 
-	'Chopin/chopin_op25_e09.mid',
-	'Chopin/chopin_op25_e10.mid',
-	'Chopin/chopin_op25_e11.mid', 
-	'Chopin/chopin_op25_e12.mid',
-	'Godowsky/godowsky_v1_chopin_op10_e01.mid',
-	'Godowsky/godowsky_v1_chopin_op10_e02.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e03.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e04.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e05.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e06.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e07.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e08.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e09.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e10.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e11.mid', 
-	'Godowsky/godowsky_v1_chopin_op10_e12.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e01.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e02.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e03.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e04.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e05.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e06.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e08.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e09.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e10.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e11.mid', 
-	'Godowsky/godowsky_v1_chopin_op25_e12.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e01.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e02.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e05.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e07.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e08.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e09.mid', 
-	'Godowsky/godowsky_v2_chopin_op10_e10.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e01.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e02.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e03.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e04.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e05.mid', 
-	'Godowsky/godowsky_v2_chopin_op25_e09.mid', 
-	'Godowsky/godowsky_v3_chopin_op10_e07.mid', 
-	'Godowsky/godowsky_v3_chopin_op10_e09.mid', 
-	'Godowsky/godowsky_v3_chopin_op25_e01.mid', 
-	'Godowsky/godowsky_v3_chopin_op25_e02.mid', 
-	'Godowsky/godowsky_v3_chopin_op25_e05.mid', 
-	'Godowsky/godowsky_v4_chopin_op25_e02.mid', 
-	'Godowsky/godowsky_v5_chopin_op10_e05.mid', 
-	'Godowsky/godowsky_v6_chopin_op10_e05.mid', 
-	'Godowsky/godowsky_v7_chopin_op10_e05.mid'
+PATH_TO_PROCESSED_FILES = 'Output/Processed/'
+PATH_TO_SCALED_FILES = 'Output/Scaled/'
+PATH_TO_WAV_FILES = 'Output/Wav/'
+
+CHOPIN_LIST = [
+	'chopin_op10_e01.mid',
+	'chopin_op10_e02.mid',
+	'chopin_op10_e03.mid',
+	'chopin_op10_e04.mid',
+	'chopin_op10_e05.mid',
+	'chopin_op10_e06.mid',
+	'chopin_op10_e07.mid',
+	'chopin_op10_e08.mid',
+	'chopin_op10_e09.mid',
+	'chopin_op10_e10.mid',
+	'chopin_op10_e11.mid',
+	'chopin_op10_e12.mid',
+	'chopin_op25_e01.mid',
+	'chopin_op25_e02.mid',
+	'chopin_op25_e03.mid',
+	'chopin_op25_e04.mid',
+	'chopin_op25_e05.mid',
+	'chopin_op25_e06.mid',
+	'chopin_op25_e07.mid',
+	'chopin_op25_e08.mid',
+	'chopin_op25_e09.mid',
+	'chopin_op25_e10.mid',
+	'chopin_op25_e11.mid',
+	'chopin_op25_e12.mid'
 ]
 
-for piece in LIST_TO_PROCESS:
-	preprocessFile(PATH_TO_DATASET + piece, PATH_TO_PROCESSED_FILES + piece)
+GODOWSKY_LIST = [
+	('godowsky_v1_chopin_op10_e01.mid', 1.395, -12),
+	('godowsky_v1_chopin_op10_e02.mid', 0.8366101695, 0),
+	('godowsky_v1_chopin_op10_e03.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e04.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e05.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e06.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e07.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e08.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e09.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e10.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e11.mid', 1, 0),
+	('godowsky_v1_chopin_op10_e12.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e01.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e02.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e03.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e04.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e05.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e06.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e08.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e09.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e10.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e11.mid', 1, 0),
+	('godowsky_v1_chopin_op25_e12.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e01.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e02.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e05.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e07.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e08.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e09.mid', 1, 0),
+	('godowsky_v2_chopin_op10_e10.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e01.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e02.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e03.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e04.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e05.mid', 1, 0),
+	('godowsky_v2_chopin_op25_e09.mid', 1, 0),
+	('godowsky_v3_chopin_op10_e07.mid', 1, 0),
+	('godowsky_v3_chopin_op10_e09.mid', 1, 0),
+	('godowsky_v3_chopin_op25_e01.mid', 1, 0),
+	('godowsky_v3_chopin_op25_e02.mid', 1, 0),
+	('godowsky_v3_chopin_op25_e05.mid', 1, 0),
+	('godowsky_v4_chopin_op25_e02.mid', 1, 0),
+	('godowsky_v5_chopin_op10_e05.mid', 1, 0),
+	('godowsky_v6_chopin_op10_e05.mid', 1, 0),
+	('godowsky_v7_chopin_op10_e05.mid', 1, 0)
+]
 
-preprocessFile('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'Output Midi/chopin_op10_e01_proc.mid')
-preprocessFile('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'Output Midi/godowsky_v1_chopin_op10_e01_proc.mid')
+def preprocessAllFiles():
+	for piece in CHOPIN_LIST:
+		preprocessFile(PATH_TO_DATASET + 'Chopin/' + piece, PATH_TO_PROCESSED_FILES + piece)
+	for piece in GODOWSKY_LIST:
+		preprocessFile(PATH_TO_DATASET + 'Godowsky/' + piece[0], PATH_TO_PROCESSED_FILES + piece[0])
 
-# (57-6*0.0625)/41
-timeScale = 1.395
+def scaleGodowskyFiles():
+	for piece in GODOWSKY_LIST:
+		scalePiece(PATH_TO_PROCESSED_FILES + piece[0], PATH_TO_SCALED_FILES + piece[0], piece[1], piece[2])
 
-scalePiece('Output Midi/godowsky_v1_chopin_op10_e01_proc.mid', 'Output Midi/godowsky_v1_chopin_op10_e01_scaled.mid', timeScale, -12)
+def convertFilesToWav():
+	fs = FluidSynth()
 
-# (38+9*0.0625)/(46+1.5*0.0625)
-timeScale = 0.8366101695
+	for piece in CHOPIN_LIST:
+		fs.midi_to_audio(PATH_TO_PROCESSED_FILES + piece, PATH_TO_WAV_FILES + piece[:-4] + '.wav')
+	for piece in GODOWSKY_LIST:
+		fs.midi_to_audio(PATH_TO_SCALED_FILES + piece[0], PATH_TO_WAV_FILES + piece[0][:-4] + '.wav')
 
-preprocessFile('Godowtsai Dataset/Chopin/chopin_op10_e02.mid', 'Output Midi/chopin_op10_e02_proc.mid')
-preprocessFile('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e02.mid', 'Output Midi/godowsky_v1_chopin_op10_e02_proc.mid')
-
-scalePiece('Output Midi/godowsky_v1_chopin_op10_e02_proc.mid', 'Output Midi/godowsky_v1_chopin_op10_e02_scaled.mid', timeScale, 0)
-
-# onlyNote('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'Output Midi/chopin_op10_e01_no_tempo.mid', 357)
-# printMidi('Output Midi/chopin_op10_e01_no_tempo.mid')
-# onlyNote('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'Output Midi/godowsky_v1_chopin_op10_e01_no_tempo.mid', -1)
-
-# shiftAndScale('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'Output Midi/godowsky_v1_chopin_op10_e01_shifted.mid', -12, 0.33) #0.3449)
+preprocessAllFiles()
+scaleGodowskyFiles()
+convertFilesToWav()
 
 
-# printMidi('Godowtsai Dataset/Chopin/chopin_op10_e02.mid')
-# onlyNote('Godowtsai Dataset/Chopin/chopin_op10_e02.mid', 'Output Midi/chopin_op10_e02_no_tempo.mid', 0)
-# printMidi('Output Midi/chopin_op10_e01_no_tempo.mid')
-# onlyNote('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e02.mid', 'Output Midi/godowsky_v1_chopin_op10_e02_no_tempo.mid', -1)
 
-# shiftAndScale('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e02.mid', 'Output Midi/godowsky_v1_chopin_op10_e02_shifted.mid', -12, 0.33) #0.3449)
+
+# def onlyNote(inputFileName, outputFileName, shiftFront):
+# 	orig = MidiFile(inputFileName)
+# 	mid = MidiFile()
+
+# 	for tr in orig.tracks:
+# 		track = MidiTrack()
+# 		mid.tracks.append(track)
+# 		#<meta message track_name name='Grand Piano' time=0>
+
+# 		# msg = Message('note_on', note=0, velocity=0, time=timeShift)
+# 		# track.append(msg)
+
+# 		for msg in tr:
+# 			if msg.type == 'note_on' or msg.type == 'note_off':
+# 				if msg.time != shiftFront:
+# 					track.append(msg)
+# 	mid.save(outputFileName)
+
+# def shiftAndScale(inputFileName, outputFileName, pitchShift, timeScale):
+# 	orig = MidiFile(inputFileName)
+# 	mid = MidiFile()
+
+# 	for tr in orig.tracks:
+# 		track = MidiTrack()
+# 		mid.tracks.append(track)
+# #<meta message track_name name='Grand Piano' time=0>
+		
+# 		# time=0 could be replaced be time=timeShift if necessary
+# 		msg = Message('note_on', note=0, velocity=0, time=0)
+# 		track.append(msg)
+
+# 		for msg in tr:
+# 			if msg.type == 'note_on':
+# 				msg.time = round(msg.time * timeScale)
+# 				msg.note = msg.note + pitchShift
+# 				track.append(msg)
+# 	mid.save(outputFileName)
+
+
+# # (57-6*0.0625)/41
+# timeScale = 1.395
+
+# scalePiece('Output/godowsky_v1_chopin_op10_e01_proc.mid', 'Output/godowsky_v1_chopin_op10_e01_scaled.mid', timeScale, -12)
+
+# # (38+9*0.0625)/(46+1.5*0.0625)
+# timeScale = 0.8366101695
+
+# preprocessFile('Godowtsai Dataset/chopin_op10_e02.mid', 'Output/chopin_op10_e02_proc.mid')
+# preprocessFile('Godowtsai Dataset/godowsky_v1_chopin_op10_e02.mid', 'Output/godowsky_v1_chopin_op10_e02_proc.mid')
+
+# scalePiece('Output/godowsky_v1_chopin_op10_e02_proc.mid', 'Output/godowsky_v1_chopin_op10_e02_scaled.mid', timeScale, 0)
+
+# onlyNote('Godowtsai Dataset/chopin_op10_e01.mid', 'Output/chopin_op10_e01_no_tempo.mid', 357)
+# printMidi('Output/chopin_op10_e01_no_tempo.mid')
+# onlyNote('Godowtsai Dataset/godowsky_v1_chopin_op10_e01.mid', 'Output/godowsky_v1_chopin_op10_e01_no_tempo.mid', -1)
+
+# shiftAndScale('Godowtsai Dataset/godowsky_v1_chopin_op10_e01.mid', 'Output/godowsky_v1_chopin_op10_e01_shifted.mid', -12, 0.33) #0.3449)
+
+
+# printMidi('Godowtsai Dataset/chopin_op10_e02.mid')
+# onlyNote('Godowtsai Dataset/chopin_op10_e02.mid', 'Output/chopin_op10_e02_no_tempo.mid', 0)
+# printMidi('Output/chopin_op10_e01_no_tempo.mid')
+# onlyNote('Godowtsai Dataset/godowsky_v1_chopin_op10_e02.mid', 'Output/godowsky_v1_chopin_op10_e02_no_tempo.mid', -1)
+
+# shiftAndScale('Godowtsai Dataset/godowsky_v1_chopin_op10_e02.mid', 'Output/godowsky_v1_chopin_op10_e02_shifted.mid', -12, 0.33) #0.3449)
