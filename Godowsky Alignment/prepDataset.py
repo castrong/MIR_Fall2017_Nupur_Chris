@@ -155,12 +155,20 @@ def convertFilesToWav():
 	for piece in GODOWSKY_LIST:
 		fs.midi_to_audio(PATH_TO_SCALED_FILES + piece[0], PATH_TO_WAV_FILES + piece[0][:-4] + '.wav')
 
-preprocessAllFiles()
-scaleGodowskyFiles()
-convertFilesToWav()
+# preprocessAllFiles()
+# scaleGodowskyFiles()
+# convertFilesToWav()
 
 
+# To align a single Godowsky file:
+name='godowsky_v1_chopin_op10_e03.mid'
+scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 0.9544534413, 3)
 
+name='godowsky_v1_chopin_op10_e05.mid'
+scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 1.0259179266, 0)
+
+fs = FluidSynth()
+fs.midi_to_audio(PATH_TO_SCALED_FILES + name, PATH_TO_WAV_FILES + name[:-4] + '.wav')
 
 # def onlyNote(inputFileName, outputFileName, shiftFront):
 # 	orig = MidiFile(inputFileName)
