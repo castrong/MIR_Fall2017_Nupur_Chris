@@ -156,10 +156,11 @@ def similarity(mat):
 
 	return similarityMat
 
-def csvToSelfSimilarity(filename, onsetOnly):
+def csvToSelfSimilarityAndMatrixRep(filename, onsetOnly):
 	'''
 	Take in the path to a CSV file that contains the MIDI data
 	Output a self-similarity matrix from that MIDI file
+	Also output its binary matrix representation
 
 	filename:
 	'''
@@ -168,16 +169,16 @@ def csvToSelfSimilarity(filename, onsetOnly):
 	origVelocityOnly = origMatrix[:, :, 1]
 	origLogicalMat = origVelocityOnly.astype(bool)
 	origSim = similarity(origLogicalMat)
-	return origSim
+	return origSim, origLogicalMat
 
 #midiToCSV(['Midi/'], 'CSV_From_Midi/')
-origMatrix = createMatrixFromCSV('godowsky_chopin_etude_10_01_v1_(c)yogore.csv', True)
+# origMatrix = createMatrixFromCSV('godowsky_chopin_etude_10_01_v1_(c)yogore.csv', True)
 
-origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
+# origVelocityOnly = origMatrix[:,:, 1] # pick out just the velocity
 
-im = Image.fromarray(origVelocityOnly * 2)
-im.show()
+# im = Image.fromarray(origVelocityOnly * 2)
+# im.show()
 
-origLogicalMat = origVelocityOnly.astype(bool)
+# origLogicalMat = origVelocityOnly.astype(bool)
 
-origSim = similarity(origLogicalMat)
+# origSim = similarity(origLogicalMat)
