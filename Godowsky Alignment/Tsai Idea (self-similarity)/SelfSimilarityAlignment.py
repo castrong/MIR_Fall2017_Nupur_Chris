@@ -4,9 +4,12 @@ import os
 sys.path.append(os.getcwd() + '/../..')
 import selfSimilarityMatrix
 
-
+import math
 import numpy as np
 import itertools
+import matplotlib.pyplot as plt
+from PIL import Image
+
 
 def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 	'''
@@ -29,6 +32,7 @@ def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 	# the path array is a 2-d array	
 	# Rows correspond to indices of SS1, cols correspond to indices of SS2
 	pathArray = np.zeros((SS1Length, SS2Length)).tolist() # list so that can put variable length paths in it
+	pathArray[0][0] = np.array([[0], [0]]) # default path starting at (0,0)
 	cumulativeCostArray = np.zeros((SS1Length, SS2Length))
 
 	# fill the path array if it's subsequence matching
@@ -42,6 +46,8 @@ def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 	for row in range(SS1Length):
 		for col in range(SS2Length):
 			print('Row, Col: %d, %d'%(row, col))
+			print('Percent done: %f'%((row * SS1Length + col) / (SS1Length * SS2Length) * 100))
+			print(cumulativeCostArray[1][1])
 			if not (row == 0 and col == 0) and not (subsequence and row == 0):
 				# loop through each possible step
 				bestCost = np.inf
@@ -53,12 +59,10 @@ def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 					curStepRow = steps[0, stepIndex]
 					curStepCol = steps[1, stepIndex]
 
-
 					# check the spot you're looking back at is 
 					if (not((row - curStepRow) < 0 or (col - curStepCol) < 0)):
 						curPath = pathArray[row - curStepRow][col-curStepCol]
 						# Make sure it's been filled in with a path
-
 						if isinstance(curPath, np.ndarray):
 							# it's an unreachable spot you've looked back into
 							newStep = np.array([[row],[col]])
@@ -67,8 +71,8 @@ def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 							#!!! switch out this one so can deal with dif weights, have it be a kind of subsampling thing
 							#newCost = PathToCost(SS1, SS2, appendedPath) # think about whether this is legit - would want to subsample the new ones - at the moment doesn't use the accumulated cost at all
 							marginalCost = PathToMarginalCost(SS1, SS2, appendedPath)
-							newCost = cumulativeCostArray[row - curStepRow, col - curStepCol] + marginalCost
-
+							print("marginal cost: %f"%marginalCost)
+							newCost = cumulativeCostArray[row - curStepRow, col - curStepCol] + marginalCost * weights[stepIndex]
 
 							if newCost <= bestCost:
 								bestCost = newCost
@@ -77,7 +81,7 @@ def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
 				# if you're best cost is still inf, then put the path for this location as inf
 				# this marks it as an unreachable location
 				if (bestCost == np.inf):
-					print("infinite cost at (%d, %d)"%(row, col))
+					print("no path for this location")
 					pathArray[row][col] = np.inf
 					cumulativeCostArray[row, col] = np.inf
 				else:
@@ -117,7 +121,9 @@ def PathToMarginalCost(SS1, SS2, path):
 	newCol2 = newCol2[0:-1]
 
 	# marginal cost is the sum of squares between them
-	return np.sum(np.square(newRow1 - newRow2)) + np.sum(np.square(newCol1 - newCol2))
+	marginalCost = np.sum(np.square(newRow1 - newRow2)) + np.sum(np.square(newCol1 - newCol2))
+
+	return marginalCost
 
 def SubSampleSS(SS1, SS2, path):
 	'''
@@ -216,6 +222,85 @@ def PathToCost(SS1, SS2, path):
 
 
 
+
+
+# make a self-similarity matrix from the CSVs that have the MIDI data
+fileOne = 'Godowsky_CSVs/godowsky_v1_chopin_op10_e01.csv'
+fileTwo = 'Chopin_CSVs/chopin_op10_e01.csv' 
+
+SS1, matrixRepOne = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileOne, True) # onsetOnly
+SS2, matrixRepTwo = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileTwo, True)
+
+
+steps = np.array([[1, 1, 2], [1, 2, 1]])
+weights = np.array([1, 1.2247, 1.2247])
+subsequence = False
+
+pathArray, cumulativeCost = SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence)
+# deal with infinities in cumulativeCost
+cumulativeCost[cumulativeCost == np.inf] = -1
+
+###############################################
+# post processing of the path and cost matrices
+
+
+# find the minimum cumulative cost at the bottom (tells you where your subsequence ends)
+minIndex = np.argmin(cumulativeCost[-1,:])
+# get the path corresponding to the minimum
+if subsequence:
+	minPath = pathArray[-1][minIndex]
+else:
+	minPath = pathArray[-1][-1]
+	if cumulativeCost[-1][-1] == -1:
+		print("This alignment was impossible (no path to reach bottom corner)")
+# plot the minimum path
+pathRows = minPath[0,:]
+pathCols = minPath[1,:]
+
+fig = plt.figure(figsize=(7, 4))
+myPlot = fig.add_subplot(111)
+myPlot.plot(pathCols, pathRows, '-', label="Path")
+myPlot.set_xlabel("Frame in Song Two")
+myPlot.set_ylabel("Frame in Song One")
+
+myPlot.set_title("Alignment")
+myPlot.legend(loc="best", frameon=False)
+myPlot.axis('equal')
+# Write the figure
+fig.savefig('pathPlot')
+
+# visualize the cumulative cost matrix
+im = Image.fromarray(cumulativeCost / np.max(cumulativeCost) * 255)
+im.show()
+
+# index out the frames from each and display side by side - all rows because we want all pitches, pulling out different time stamps
+framesFromOne = matrixRepOne[:, pathRows]
+framesFromTwo = matrixRepTwo[:, pathCols]
+
+# convert the boolean array of onsets to integers
+framesFromOneFloat = framesFromOne.astype('float')
+framesFromTwoFloat = framesFromTwo.astype('float')
+
+lengthDif = matrixRepTwo.shape[1] - matrixRepOne.shape[1]
+paddedSongOne = np.append(matrixRepOne, np.zeros((matrixRepOne.shape[0], lengthDif)), axis=1)
+groupedSongsBefore = np.append(np.append(paddedSongOne, np.zeros((10, paddedSongOne.shape[1])), axis=0), matrixRepTwo, axis=0)
+
+
+# concatenate onto each other so can see them both - space by a thing of 0s
+groupedSongsAfter = np.append(np.append(framesFromOneFloat, np.zeros((10, framesFromOneFloat.shape[1])), axis=0), framesFromTwoFloat, axis=0)
+
+im = Image.fromarray(framesFromOneFloat * 255)
+im.show()
+im = Image.fromarray(framesFromTwoFloat * 255)
+im.show()
+im = Image.fromarray(groupedSongsAfter * 255)
+im.show()
+im = Image.fromarray(groupedSongsBefore * 255)
+im.show()
+
+
+
+# test case
 # SS1 = np.array([[0, 0, 1], [1, 1, 0], [1, 1, 0]])
 # SS2 = np.array([[0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 1, 1], [1, 1, 1, 1, 0, 0], [1, 1, 1, 1, 0, 0], [1, 1, 1, 1, 0, 0], [1, 1, 1, 1, 0, 0]])
 # path = np.array([[0, 0], [0, 3]])
@@ -225,23 +310,4 @@ def PathToCost(SS1, SS2, path):
 # weights = np.array([1, 1, 1])
 
 # SelfSimilarityAlignment(SS1, SS2, steps, weights, True)
-
-
-# make a self-similarity matrix from the CSVs that have the MIDI data
-fileOne = 'Godowsky_CSVs/godowsky_v1_chopin_op10_e01.csv'
-fileTwo = 'Godowsky_CSVs/godowsky_v1_chopin_op10_e01.csv'
-
-SS1 = selfSimilarityMatrix.csvToSelfSimilarity(fileOne, True) # onsetOnly
-SS2 = selfSimilarityMatrix.csvToSelfSimilarity(fileTwo, True)
-
-
-steps = np.array([[1, 0, 1, 1, 2], [0, 1, 1, 2, 1]])
-weights = np.array([1, 1, 1])
-
-pathArray, cumulativeCost = SelfSimilarityAlignment(SS1, SS2, steps, weights, True)
-
-from PIL import Image
-im = Image.fromarray(cumulativeCost)
-im.show()
-
 
