@@ -1,41 +1,169 @@
 # import mido
 # import random
 import pretty_midi
+import numpy as np
 
 # from mido import Message, MidiFile, MidiTrack
 from midi2audio import FluidSynth
 
+import matplotlib.pyplot as plt
+
+
 def printMidi(fileName):
+    '''
+    Input: path to a MIDI file
+
+    Prints out every message in the MIDI file
+    '''
 	midiToPlay = MidiFile(fileName)
 	for track in midiToPlay.tracks:
 	    for msg in track:
 	        print(msg)
 
-'''
-Collapses different MIDI tracks (or "Instruments" by PrettyMIDI language) into a single track,
-and then shifts the track so that there is no silence at the beginning of the track.
-'''
-def preprocessFile(inputFileName, outputFileName):
+def cutInitialSilence(inputFileName, outputFileName):
+    '''
+    Input: path to a MIDI file to remove silence from, path to a file to save
+    the modified MIDI file
+
+    Takes in a MIDI file with specified file path, and returns a new MIDI file
+    with the silence at the beginning removed.
+    '''
+
 	# Load MIDI file into PrettyMIDI object
 	midi_data = pretty_midi.PrettyMIDI(inputFileName)
 
 	# Make a new PrettyMIDI object for the modified file
-	modified_data = pretty_midi.PrettyMIDI()
-	piano = pretty_midi.Instrument(program=pretty_midi.instrument_name_to_program('Acoustic Grand Piano'))
-	modified_data.instruments.append(piano)
+	modified_data = midi_data
+
+	first_onset = 10000
 
 	for instrument in midi_data.instruments:
-		for note in instrument.notes:
-			piano.notes.append(note)
+		if instrument.get_onsets()[0] < first_onset:
+			first_onset = instrument.get_onsets()[0]
 
-	onsets = modified_data.instruments[0].get_onsets()
-	if onsets[0] > 0:
-		for note in modified_data.instruments[0].notes:
-			note.start = note.start - onsets[0]
-			note.end = note.end - onsets[0]
+	if first_onset > 0:
+		for instrument in modified_data.instruments:
+			for note in instrument.notes:
+				note.start = note.start - first_onset
+				note.end = note.end - first_onset
 
-	modified_data.fluidsynth
 	modified_data.write(outputFileName)
+
+
+def createTimeAlignment(songOnePath, songTwoPath, outputPath, songOneMeasures, songTwoMeasures, alignByMeasure):
+	'''
+    Inputs: paths to 2 MIDI files, a path to a faile to write the modified version of songOne to,
+     a list of which measures correspond in the piece, and a boolean that specifies whether to align by measure
+     (as opposed to aligning every beat)
+
+    Expected format of the measures is:
+        songOneMeasures=[(1, 45), (60,75)]
+        songTwoMeasures=[(1,45), (62,77)]
+    Takes in a boolean alignByMeasure
+        If true, only aligns the first beat in each measure
+        If false, aligns every beat in each measure
+	'''
+
+	# get the midi data
+	midiDataOne = pretty_midi.PrettyMIDI(songOnePath)
+	midiDataTwo = pretty_midi.PrettyMIDI(songTwoPath)
+	# find each time signature
+	timeSigOne = midiDataOne.time_signature_changes[0].numerator
+	timeSigTwo = midiDataTwo.time_signature_changes[0].numerator
+	# timeSigTwo = 2
+	# build up the beat arrays
+	beatsOne = np.array([], dtype='int')
+	beatsTwo = np.array([], dtype='int')
+
+	# for each song, go through each section that should line up
+	for tup in songOneMeasures:
+		startMeasure = tup[0]
+		endMeasure = tup[1]
+		startBeat = (startMeasure - 1) * timeSigOne
+		endBeat = (endMeasure - 1) * timeSigOne + 1
+		if alignByMeasure:
+			newBeats = range(startBeat, endBeat + 1, timeSigOne)
+		else:
+			newBeats = range(startBeat, endBeat + 1, 1)
+		# add on your new beats
+		beatsOne = np.append(beatsOne, newBeats)
+
+	for tup in songTwoMeasures:
+		startMeasure = tup[0]
+		endMeasure = tup[1]
+		startBeat = (startMeasure - 1) * timeSigTwo
+		endBeat = (endMeasure - 1) * timeSigTwo + 1
+		if alignByMeasure:
+			newBeats = range(startBeat, endBeat + 1, timeSigTwo)
+		else:
+			newBeats = range(startBeat, endBeat + 1, 1)
+		# add on the new beats
+		beatsTwo = np.append(beatsTwo, newBeats)
+
+	# TODO: Should we always align the last beat?
+
+	timesOne, timesTwo = createTimeAlignmentFromBeats(songOnePath, songTwoPath, beatsOne, beatsTwo, outputPath)
+
+	return (timesOne, timesTwo)
+
+def createTimeAlignmentFromBeats(songOnePath, songTwoPath, songOneAlignedBeats, songTwoAlignedBeats, outPath):
+    '''
+    Inputs: paths to 2 MIDI files, 2 lists of beats that align, and an output path to save a modified MIDI file to
+
+    Creates an aligned midi file by scaling the beats as specified, and applies these scalings to songOne.
+    The modified songOne and original songTwo should be aligned when played together.
+    '''
+
+	midiDataOne = pretty_midi.PrettyMIDI(songOnePath)
+	midiDataTwo = pretty_midi.PrettyMIDI(songTwoPath)
+
+	songOneBeats = midiDataOne.get_beats()
+	songTwoBeats = midiDataTwo.get_beats()
+
+	numBeats = len(songOneAlignedBeats)
+
+	print(numBeats)
+
+	timesOne = np.empty(numBeats)
+	timesTwo = np.empty(numBeats)
+
+	for i in range(numBeats):
+		timesOne[i] = songOneBeats[songOneAlignedBeats[i]]
+		timesTwo[i] = songTwoBeats[songTwoAlignedBeats[i]]
+
+	modified = midiDataOne
+	modified.adjust_times(timesOne, timesTwo)
+	modified.write(outPath)
+
+	return (timesOne, timesTwo)
+
+
+cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'chopin_op10_e01_edited.mid')
+cutInitialSilence('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'godowsky_v1_chopin_op10_e01_edited.mid')
+
+colGroundTruthTimes, rowGroundTruthTimes = createTimeAlignment('chopin_op10_e01_edited.mid', 'godowsky_v1_chopin_op10_e01_edited.mid', 'chopin_op10_e01_aligned.mid', [(1, 80)], [(1,80)], True)
+
+
+# To evaluate algorithm, save results from algorithm in rowTimes and colTimes, then run the following code to generate an alignment plot
+
+# fig = plt.figure(figsize=(7, 4))
+# myPlot = fig.add_subplot(111)
+# myPlot.plot(colTimes, rowTimes, '-', label="Algorithmic Alignment")
+# myPlot.plot(colGroundTruthTimes, rowGroundTruthTimes, '.', label='Ground Truth')
+# myPlot.set_xlabel("Frame in Song Two")
+# myPlot.set_ylabel("Frame in Song One")
+
+# myPlot.set_title("Alignment")
+# myPlot.legend(loc="best", frameon=False)
+# myPlot.axis('equal')
+# # Write the figure
+# fig.savefig('groundTruthPlot')
+
+
+
+# To convert
+
+
 
 '''
 Take in processed file (one track, no initial silence), and
@@ -161,14 +289,22 @@ def convertFilesToWav():
 
 
 # To align a single Godowsky file:
-name='godowsky_v1_chopin_op10_e03.mid'
-scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 0.9544534413, 3)
+# name='godowsky_v1_chopin_op10_e03.mid'
+# scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 0.9544534413, 3)
 
-name='godowsky_v1_chopin_op10_e05.mid'
-scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 1.0259179266, 0)
+# name='godowsky_v1_chopin_op10_e05.mid'
+# scalePiece(PATH_TO_PROCESSED_FILES + name, PATH_TO_SCALED_FILES + name, 1.0259179266, 0)
 
-fs = FluidSynth()
-fs.midi_to_audio(PATH_TO_SCALED_FILES + name, PATH_TO_WAV_FILES + name[:-4] + '.wav')
+# fs = FluidSynth()
+# fs.midi_to_audio(PATH_TO_SCALED_FILES + name, PATH_TO_WAV_FILES + name[:-4] + '.wav')
+
+
+
+
+
+
+
+
 
 # def onlyNote(inputFileName, outputFileName, shiftFront):
 # 	orig = MidiFile(inputFileName)
