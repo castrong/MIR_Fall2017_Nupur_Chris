@@ -7,8 +7,8 @@ import selfSimilarityMatrix
 import math
 import numpy as np
 import itertools
-import matplotlib.pyplot as plt
 from PIL import Image
+import pretty_midi
 
 
 def SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence):
@@ -219,28 +219,54 @@ def PathToCost(SS1, SS2, path):
 	cost = np.sum(np.square(difference))
 	return cost
 
+def alignedMidis(songPath, timesOne, timesTwo, outFile):
+	midiData = pretty_midi.PrettyMIDI(songPath)
+	midiData.adjust_times(timesOne, timesTwo)
+	midiData.write(outFile)
 
 
 
+fileOne = '../Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e01_edited.mid'
+fileTwo = '../Godowtsai Dataset/Edited Chopin/chopin_op10_e01_edited.mid'
 
+SS1, matrixRepOne = selfSimilarityMatrix.midiToSimilarityAndMatrixRep(fileOne)
+SS2, matrixRepTwo = selfSimilarityMatrix.midiToSimilarityAndMatrixRep(fileTwo)
 
-# make a self-similarity matrix from the CSVs that have the MIDI data
-fileOne = 'Godowsky_CSVs/godowsky_v1_chopin_op10_e01.csv'
-fileTwo = 'Chopin_CSVs/chopin_op10_e01.csv' 
-
-SS1, matrixRepOne = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileOne, True) # onsetOnly
-SS2, matrixRepTwo = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileTwo, True)
+im = Image.fromarray(matrixRepOne.astype('float') * 255)
+im.show()
+im = Image.fromarray(matrixRepTwo.astype('float') * 255)
+im.show()
 
 
 steps = np.array([[1, 1, 2], [1, 2, 1]])
-weights = np.array([1, 1.2247, 1.2247])
+weights = np.array([1, 1, 1])
 subsequence = False
 
 pathArray, cumulativeCost = SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence)
 # deal with infinities in cumulativeCost
 cumulativeCost[cumulativeCost == np.inf] = -1
 
-###############################################
+fs = 100
+
+
+# #### old stuff below
+# # make a self-similarity matrix from the CSVs that have the MIDI data
+# fileOne = 'Godowsky_CSVs/godowsky_v1_chopin_op10_e01.csv'
+# fileTwo = 'Chopin_CSVs/chopin_op10_e01.csv' 
+
+# SS1, matrixRepOne = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileOne, True) # onsetOnly
+# SS2, matrixRepTwo = selfSimilarityMatrix.csvToSelfSimilarityAndMatrixRep(fileTwo, True)
+
+
+# steps = np.array([[1, 1, 2], [1, 2, 1]])
+# weights = np.array([1, 1.2247, 1.2247])
+# subsequence = False
+
+# pathArray, cumulativeCost = SelfSimilarityAlignment(SS1, SS2, steps, weights, subsequence)
+# # deal with infinities in cumulativeCost
+# cumulativeCost[cumulativeCost == np.inf] = -1
+
+# ###############################################
 # post processing of the path and cost matrices
 
 
@@ -253,10 +279,17 @@ else:
 	minPath = pathArray[-1][-1]
 	if cumulativeCost[-1][-1] == -1:
 		print("This alignment was impossible (no path to reach bottom corner)")
-# plot the minimum path
+
 pathRows = minPath[0,:]
 pathCols = minPath[1,:]
 
+# make audio output
+fs = 10.
+rowTimes = pathRows * 1/fs
+colTimes = pathCols * 1/fs
+alignedMidis(fileTwo, colTimes, rowTimes, 'temp.mid')
+
+# plot the minimum path
 fig = plt.figure(figsize=(7, 4))
 myPlot = fig.add_subplot(111)
 myPlot.plot(pathCols, pathRows, '-', label="Path")
@@ -283,11 +316,11 @@ framesFromTwoFloat = framesFromTwo.astype('float')
 
 lengthDif = matrixRepTwo.shape[1] - matrixRepOne.shape[1]
 paddedSongOne = np.append(matrixRepOne, np.zeros((matrixRepOne.shape[0], lengthDif)), axis=1)
-groupedSongsBefore = np.append(np.append(paddedSongOne, np.zeros((10, paddedSongOne.shape[1])), axis=0), matrixRepTwo, axis=0)
+groupedSongsBefore = np.append(np.append(paddedSongOne, np.zeros((40, paddedSongOne.shape[1])), axis=0), matrixRepTwo, axis=0)
 
 
 # concatenate onto each other so can see them both - space by a thing of 0s
-groupedSongsAfter = np.append(np.append(framesFromOneFloat, np.zeros((10, framesFromOneFloat.shape[1])), axis=0), framesFromTwoFloat, axis=0)
+groupedSongsAfter = np.append(np.append(framesFromOneFloat, np.zeros((40, framesFromOneFloat.shape[1])), axis=0), framesFromTwoFloat, axis=0)
 
 im = Image.fromarray(framesFromOneFloat * 255)
 im.show()
@@ -299,6 +332,22 @@ im = Image.fromarray(groupedSongsBefore * 255)
 im.show()
 
 
+# plot ground truth - hard coding in the ground truth for now
+# rowGroundTruthTimes = []
+# colGroundTruthTimes = []
+
+# fig = plt.figure(figsize=(7, 4))
+# myPlot = fig.add_subplot(111)
+# myPlot.plot(colTimes, rowTimes, '-', label="Algorithmic Alignment")
+# myPlot.plot(colGroundTruthTimes, rowGroundTruthTimes, '.', label='Ground Truth')
+# myPlot.set_xlabel("Frame in Song Two")
+# myPlot.set_ylabel("Frame in Song One")
+
+# myPlot.set_title("Alignment")
+# myPlot.legend(loc="best", frameon=False)
+# myPlot.axis('equal')
+# # Write the figure
+# fig.savefig('groundTruthPlot')
 
 # test case
 # SS1 = np.array([[0, 0, 1], [1, 1, 0], [1, 1, 0]])
