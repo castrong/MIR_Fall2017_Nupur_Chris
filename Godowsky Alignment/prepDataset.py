@@ -69,8 +69,8 @@ def createTimeAlignment(songOnePath, songTwoPath, outputSongPath, outputFileName
     midiDataOne = pretty_midi.PrettyMIDI(songOnePath)
     midiDataTwo = pretty_midi.PrettyMIDI(songTwoPath)
     # find each time signature
-    timeSigOne = 2 #midiDataOne.time_signature_changes[0].numerator
-    timeSigTwo = 2 #midiDataTwo.time_signature_changes[0].numerator
+    timeSigOne = midiDataOne.time_signature_changes[0].numerator
+    timeSigTwo = midiDataTwo.time_signature_changes[0].numerator
     # timeSigTwo = 2
     # build up the beat arrays
     beatsOne = np.array([], dtype='int')
