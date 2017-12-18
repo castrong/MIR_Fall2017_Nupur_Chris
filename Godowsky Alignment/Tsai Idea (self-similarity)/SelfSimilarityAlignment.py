@@ -394,6 +394,15 @@ def PathToCost(SS1, SS2, path):
 	return cost
 
 def alignedMidis(songPath, timesOne, timesTwo, outFile):
+	'''
+	Stretch the midi file in songPath based on mapping timesOne to timesTwo,
+	and put the output in outFile
+
+	songPath: path to MIDI file that is related to timesOne
+	timesOne: times in a song
+	timesTwo: times that each time in timesOne should be mapped to
+	outFile: the file to write the new audio to 
+	'''
 	midiData = pretty_midi.PrettyMIDI(songPath)
 	midiData.adjust_times(timesOne, timesTwo)
 	midiData.write(outFile)
