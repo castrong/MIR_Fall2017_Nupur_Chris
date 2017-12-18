@@ -158,13 +158,13 @@ def formatTimeAlignment(timesOne, timesTwo, outputFileName):
             filewriter.writerow([str(timesOne[i]), str(timesTwo[i])])
 
 
-# cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_3.mid', 'chopin_op10_03_again_edited.mid')
-# createTimeAlignment('chopin_op10_03_again_edited.mid', 'godowsky_v1_chopin_op10_e03_edited.mid', 'chopin_op10_e03_aligned.mid', 'alignment_chopin_op10_e03.csv', [(1, 45), (62,77)], [(1,45), (60,75)], False)
+# cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_e03.mid', 'Godowtsai Dataset/Edited Chopin/chopin_op10_03_again_edited.mid')
+# createTimeAlignment('Godowtsai Dataset/Edited Chopin/chopin_op10_03_again_edited.mid', 'Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e03_edited.mid', 'Godowtsai Dataset/Aligned Chopin/v1_chopin_op10_e03_aligned.mid', 'Godowtsai Dataset/Ground Truth Alignments/alignment_chopin_op10_e03.csv', [(1, 45), (62,77)], [(1,45), (60,75)], False)
 
-cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'chopin_op10_e01_edited.mid')
+cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'Godowtsai Dataset/Edited Chopin/chopin_op10_e01_edited.mid')
 cutInitialSilence('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'godowsky_v1_chopin_op10_e01_edited.mid')
 
-createTimeAlignment('chopin_op10_e01_edited.mid', 'godowsky_v1_chopin_op10_e01_edited.mid', 'Godowtsai Dataset/Aligned Chopin/chopin_op10_e01_v1_aligned.mid', 'Godowtsai Dataset/Ground Truth Alignments/godowsky_v1_chopin_op10_e01.csv', [(1, 80)], [(1,80)], True)
+createTimeAlignment('Godowtsai Dataset/Edited Chopin/chopin_op10_e01_edited.mid', 'Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e01_edited.mid', 'Godowtsai Dataset/Aligned Chopin/v1_chopin_op10_e01_aligned.mid', 'Godowtsai Dataset/Ground Truth Alignments/godowsky_v1_chopin_op10_e01.csv', [(1, 80)], [(1,80)], True)
 
 
 
