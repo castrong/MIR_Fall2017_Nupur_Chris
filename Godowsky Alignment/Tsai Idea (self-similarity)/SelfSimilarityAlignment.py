@@ -48,7 +48,7 @@ ex:
 fileOne = '../Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e01_edited.mid'
 fileTwo = '../Godowtsai Dataset/Edited Chopin/chopin_op10_e01_edited.mid'
 
-# sampling rate from the piano roll
+# sampling rate to sample with from the piano roll
 fs = 10.
 
 SS1, matrixRepOne = selfSimilarityMatrix.midiToSimilarityAndMatrixRep(fileOne, fs)
@@ -155,7 +155,6 @@ d. Plot the ground truth alignment vs. this alignment
 	+ colTimes and rowTimes 
 
 # find the absolute row and col times based on the sampling rate
-fs = 10.
 rowTimes = pathRows * 1/fs
 colTimes = pathCols * 1/fs
 
@@ -395,6 +394,15 @@ def PathToCost(SS1, SS2, path):
 	return cost
 
 def alignedMidis(songPath, timesOne, timesTwo, outFile):
+	'''
+	Stretch the midi file in songPath based on mapping timesOne to timesTwo,
+	and put the output in outFile
+
+	songPath: path to MIDI file that is related to timesOne
+	timesOne: times in a song
+	timesTwo: times that each time in timesOne should be mapped to
+	outFile: the file to write the new audio to 
+	'''
 	midiData = pretty_midi.PrettyMIDI(songPath)
 	midiData.adjust_times(timesOne, timesTwo)
 	midiData.write(outFile)
@@ -403,8 +411,8 @@ def alignedMidis(songPath, timesOne, timesTwo, outFile):
 Getting the self similarity matrices and running the algorithm
 '''
 
-fileOne = '../Godowtsai Dataset/Edited Chopin/chopin_op10_3_again_edited.mid'
-fileTwo = '../Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e03_edited.mid'
+fileOne = '../Godowtsai Dataset/Edited Chopin/chopin_op10_e01_edited.mid'
+fileTwo = '../Godowtsai Dataset/Edited Godowsky/godowsky_v1_chopin_op10_e01_edited.mid'
 
 fs = 3
 
@@ -498,10 +506,16 @@ framesFromTwo = matrixRepTwo[:, pathCols]
 framesFromOneFloat = framesFromOne.astype('float')
 framesFromTwoFloat = framesFromTwo.astype('float')
 
-# ASSUMES SONG ONE SHORTER
+# pad whichever one is shorter
 lengthDif = matrixRepTwo.shape[1] - matrixRepOne.shape[1]
-paddedSongOne = np.append(matrixRepOne, np.zeros((matrixRepOne.shape[0], lengthDif)), axis=1)
-groupedSongsBefore = np.append(np.append(paddedSongOne, np.zeros((40, paddedSongOne.shape[1])), axis=0), matrixRepTwo, axis=0)
+if lengthDif > 0:
+	paddedSongOne = np.append(matrixRepOne, np.zeros((matrixRepOne.shape[0], lengthDif)), axis=1)
+	paddedSongTwo = matrixRepTwo
+else:
+	paddedSongOne = matrixRepOne
+	paddedSongTwo = np.append(matrixRepTwo, np.zeros((matrixRepTwo.shape[0], -lengthDif)), axis=1)
+
+groupedSongsBefore = np.append(np.append(paddedSongOne, np.zeros((40, paddedSongOne.shape[1])), axis=0), paddedSongTwo, axis=0)
 
 
 # concatenate onto each other so can see them both - space by a thing of 0s
@@ -521,7 +535,8 @@ im.show()
 # plot ground truth - hard coding in the ground truth for now
 # assume comma delimited text file with the first column as times from
 # song one and the second column as times from song two
-groundTruth =np.genfromtxt('testGroundTruth.csv', delimiter=',')
+groundTruthFile = '../Godowtsai Dataset/Ground Truth Alignments/alignment_chopin_op10_e01.csv'
+groundTruth = np.genfromtxt(groundTruthFile, delimiter=',')
 rowGroundTruthTimes = groundTruth[:, 0]
 colGroundTruthTimes = groundTruth[:, 1]
 
