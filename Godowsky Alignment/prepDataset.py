@@ -164,7 +164,7 @@ def formatTimeAlignment(timesOne, timesTwo, outputFileName):
 cutInitialSilence('Godowtsai Dataset/Chopin/chopin_op10_e01.mid', 'chopin_op10_e01_edited.mid')
 cutInitialSilence('Godowtsai Dataset/Godowsky/godowsky_v1_chopin_op10_e01.mid', 'godowsky_v1_chopin_op10_e01_edited.mid')
 
-createTimeAlignment('chopin_op10_e01_edited.mid', 'godowsky_v1_chopin_op10_e01_edited.mid', 'chopin_op10_e01_aligned.mid', 'Godowtsai Dataset/Ground Truth Alignments/alignment_chopin_op10_e01.csv', [(1, 80)], [(1,80)], True)
+createTimeAlignment('chopin_op10_e01_edited.mid', 'godowsky_v1_chopin_op10_e01_edited.mid', 'chopin_op10_e01_aligned.mid', 'Godowtsai Dataset/Ground Truth Alignments/godowsky_v1_chopin_op10_e01.csv', [(1, 80)], [(1,80)], True)
 
 
 
